@@ -1,0 +1,6 @@
+/blocklist
+*.db
+*.db-journal
+*.log
+__pycache__/
+.DS_Store

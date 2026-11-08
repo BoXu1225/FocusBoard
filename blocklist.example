@@ -1,0 +1,21 @@
+# FocusBoard blocklist. Copy to ./blocklist, edit, then run `sudo ./blocker/install.sh`
+# (re-run it after edits: the installed copy is root-owned on purpose, so turning
+# the block off takes a deliberate step).
+#
+# Blocking windows, local time. No `when` lines = blocked all the time.
+# Days: mon..sun, ranges (mon-fri), lists (sat,sun) or `daily`.
+# An end before the start wraps past midnight (e.g. 22:00-01:00).
+when mon-fri 19:00-22:00
+when sat,sun 13:00-18:00
+
+# Domains (the www. variant is added automatically). Subdomains must be listed
+# one by one: /etc/hosts has no wildcards.
+x.com
+twitter.com
+mobile.twitter.com
+bilibili.com
+m.bilibili.com
+space.bilibili.com
+search.bilibili.com
+t.bilibili.com
+live.bilibili.com

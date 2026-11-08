@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FocusBoard</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--mute:#6b6a66;--line:#e3e1dc;--acc:#2f6f5e;--acc2:#e8f1ee;--warn:#b5532d;--plan:#d9e6f5;--done:#9aa09d}
+@media (prefers-color-scheme:dark){:root{--bg:#141514;--card:#1d1f1e;--ink:#e9e8e4;--mute:#9a9a94;--line:#2e302f;--acc:#6cc2a6;--acc2:#20332d;--warn:#e08a63;--plan:#22344a;--done:#6a6f6c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:2}
+h1{font-size:17px;margin:0 8px 0 0}
+nav button,.day button{background:none;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit}
+nav button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.day{display:flex;align-items:center;gap:6px;margin-left:auto}
+.chip{font-size:12px;padding:3px 8px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
+.chip.on{color:var(--warn);border-color:var(--warn)}
+main{max-width:980px;margin:0 auto;padding:16px;display:grid;gap:16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:0 0 10px}
+.now{display:flex;flex-direction:column;gap:10px}
+.big{font-size:22px;font-weight:600}
+.timer{font-variant-numeric:tabular-nums;color:var(--acc);font-size:28px;font-weight:600}
+.next{background:var(--acc2);border-radius:10px;padding:10px 12px}
+.next b{display:block}
+form{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+input{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+input[type=time],input[type=checkbox]{flex:0 0 auto}
+button.p{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:7px 12px;font:inherit;cursor:pointer}
+button.g{background:none;border:0;color:var(--mute);cursor:pointer;font:inherit;padding:2px 6px}
+button.g:hover{color:var(--ink)}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)}
+li:first-child{border-top:0}
+li .t{flex:1;min-width:0}
+li .s{font-size:12px;color:var(--mute)}
+li.done .t{color:var(--done);text-decoration:line-through}
+li.cur{background:var(--acc2);border-radius:8px;padding-left:6px}
+.tag{font-size:11px;color:var(--warn)}
+.tl{display:grid;grid-template-columns:52px 1fr;font-size:12px}
+.tl .h{color:var(--mute);height:40px;border-top:1px solid var(--line);padding-top:2px}
+.cols{position:relative;border-left:1px solid var(--line)}
+.ev{position:absolute;border-radius:6px;padding:2px 6px;overflow:hidden;font-size:11px;line-height:1.25}
+.ev.plan{background:var(--plan)}
+.ev.sess{background:var(--acc);color:#fff}
+.ev.app{background:var(--line);color:var(--ink)}
+.ev.idle{background:transparent;border:1px dashed var(--line);color:var(--mute)}
+.legend{display:flex;gap:12px;font-size:12px;color:var(--mute);margin-bottom:8px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:500;font-size:12px}
+.bar{height:8px;border-radius:4px;background:var(--acc)}
+.bar.p{background:var(--plan)}
+.err{color:var(--warn);font-size:13px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>FocusBoard</h1>
+  <nav><button data-v="today" class="on">Today</button> <button data-v="timeline">Timeline</button> <button data-v="week">Week</button></nav>
+  <span id="blk" class="chip">blocker ?</span>
+  <div class="day"><button id="prev">‹</button><span id="dayl"></span><button id="next">›</button><button id="tod">Today</button></div>
+</header>
+<main>
+  <div id="err" class="err"></div>
+
+  <section id="v-today" class="grid">
+    <div class="card now">
+      <h2>Now</h2>
+      <div id="running"></div>
+      <div id="nextblock"></div>
+      <form id="startf"><input id="startl" list="labels" placeholder="What are you doing now?" autocomplete="off"><datalist id="labels"></datalist><button class="p">Start</button></form>
+    </div>
+    <div class="card">
+      <h2>Plan</h2>
+      <ul id="blocks"></ul>
+      <form id="blockf">
+        <input type="time" id="bs" required> <input type="time" id="be" required>
+        <input id="bt" placeholder="Block (e.g. Terraform study)" required>
+        <input id="bf" placeholder="First step (e.g. lab 3, step 1)" style="flex-basis:100%">
+        <button class="p">Add block</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Todos</h2>
+      <ul id="tasks"></ul>
+      <form id="taskf"><input id="tt" placeholder="Add a todo for this day" required><button class="p">Add</button></form>
+    </div>
+    <div class="card">
+      <h2>Backlog</h2>
+      <ul id="backlog"></ul>
+      <form id="backf"><input id="bl" placeholder="Someday / to research later" required><button class="p">Add</button></form>
+    </div>
+  </section>
+
+  <section id="v-timeline" class="card hide">
+    <h2>Planned vs actual</h2>
+    <div class="legend"><span>■ plan</span><span style="color:var(--acc)">■ timer</span><span>■ foreground app (sampler)</span></div>
+    <div id="tl"></div>
+    <h2 style="margin-top:16px">App time today (minutes)</h2>
+    <table id="tot"></table>
+  </section>
+
+  <section id="v-week" class="card hide">
+    <h2>Week review</h2>
+    <table id="wk"></table>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const iso = d => d.toLocaleDateString("en-CA");
+let day = iso(new Date()), view = "today", data = null;
+try { view = localStorage.getItem("fb.view") || "today"; } catch (e) {}
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  const j = await r.json();
+  if (!r.ok) { $("#err").textContent = j.error || r.status; throw new Error(j.error); }
+  $("#err").textContent = "";
+  return j;
+}
+const post = async (p, b) => { await api(p, b); await load(); };
+const mins = hm => { const [h, m] = hm.split(":").map(Number); return h * 60 + m; };
+const hhmm = ts => ts.slice(11, 16);
+const dur = s => { s = Math.max(0, Math.floor(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" : "") + String(m).padStart(h ? 2 : 1, "0") + ":" + String(x).padStart(2, "0"); };
+
+function setView(v) {
+  view = v; try { localStorage.setItem("fb.view", v); } catch (e) {}
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+  ["today", "timeline", "week"].forEach(x => $("#v-" + x).classList.toggle("hide", x !== v));
+  load();
+}
+
+async function load() {
+  $("#dayl").textContent = new Date(day + "T12:00").toLocaleDateString(undefined, {weekday: "short", day: "numeric", month: "short"});
+  data = await api("/api/day?day=" + day);
+  const b = data.blocker;
+  $("#blk").textContent = b === null ? "blocker ?" : b ? "sites blocked" : "sites open";
+  $("#blk").classList.toggle("on", !!b);
+  if (view === "today") renderToday();
+  if (view === "timeline") renderTimeline(await api("/api/timeline?day=" + day));
+  if (view === "week") renderWeek(await api("/api/week?day=" + day));
+}
+
+function currentBlock() {
+  const n = new Date(), m = n.getHours() * 60 + n.getMinutes();
+  if (day !== iso(n)) return {cur: null, next: null};
+  const cur = data.blocks.find(b => mins(b.start) <= m && m < mins(b.end));
+  const next = data.blocks.find(b => mins(b.start) > m);
+  return {cur, next};
+}
+
+function renderToday() {
+  const r = data.running, {cur, next} = currentBlock();
+  $("#running").innerHTML = r
+    ? `<div class="big">${esc(r.label)}</div><div class="timer" id="tick"></div><div><button class="p" id="stop">Stop</button></div>`
+    : `<div class="big" style="color:var(--mute)">Nothing running</div>`;
+  if (r) $("#stop").onclick = () => post("/api/stop", {});
+  const blk = cur || next;
+  $("#nextblock").innerHTML = blk
+    ? `<div class="next"><span class="s">${cur ? "Now" : "Next"} · ${blk.start}–${blk.end}</span><b>${esc(blk.title)}</b>${blk.first_step ? "First step: " + esc(blk.first_step) : ""}
+       ${!r || r.label !== blk.title ? `<div style="margin-top:6px"><button class="p" id="startblk">Start “${esc(blk.title)}”</button></div>` : ""}</div>`
+    : (day === iso(new Date()) && !data.blocks.length ? `<div class="next">No plan yet. Add 1–3 blocks with a concrete first step.</div>` : "");
+  if ($("#startblk")) $("#startblk").onclick = () => post("/api/start", {label: blk.title});
+
+  const labels = new Set([...data.blocks.map(b => b.title), ...data.tasks.filter(t => !t.done_at).map(t => t.title), ...data.sessions.map(s => s.label)]);
+  $("#labels").innerHTML = [...labels].map(l => `<option value="${esc(l)}">`).join("");
+
+  $("#blocks").innerHTML = data.blocks.map(b => `<li class="${cur && cur.id === b.id ? "cur" : ""}"><span class="s">${b.start}–${b.end}</span><span class="t">${esc(b.title)}${b.first_step ? `<div class="s">→ ${esc(b.first_step)}</div>` : ""}</span><button class="g" data-del-block="${b.id}" title="Delete">✕</button></li>`).join("") || `<li class="s">No blocks for this day.</li>`;
+
+  const dayTasks = data.tasks.filter(t => t.day), back = data.tasks.filter(t => !t.day);
+  const taskLi = t => `<li class="${t.done_at ? "done" : ""}"><input type="checkbox" data-tog="${t.id}" ${t.done_at ? "checked" : ""}>
+     <span class="t">${esc(t.title)} ${t.day && t.day < day && !t.done_at ? `<span class="tag">from ${t.day.slice(5)}</span>` : ""}</span>
+     ${!t.done_at ? `<button class="g" data-go="${esc(t.title)}" title="Start timer">▶</button>` : ""}
+     <button class="g" data-move="${t.id}" data-to="${t.day ? "" : day}" title="${t.day ? "To backlog" : "To this day"}">${t.day ? "↓" : "↑"}</button>
+     <button class="g" data-del-task="${t.id}" title="Delete">✕</button></li>`;
+  $("#tasks").innerHTML = dayTasks.map(taskLi).join("") || `<li class="s">Nothing yet.</li>`;
+  $("#backlog").innerHTML = back.map(taskLi).join("") || `<li class="s">Empty.</li>`;
+  tick();
+}
+
+function tick() {
+  const el = $("#tick");
+  if (el && data.running) {
+    const offset = new Date(data.now) - Date.now();   // server clock vs browser clock
+    el.textContent = dur((Date.now() + offset - new Date(data.running.start_ts)) / 1000);
+  }
+}
+setInterval(() => { if (view === "today") tick(); }, 1000);
+setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
+
+function renderTimeline(t) {
+  const startH = 6, endH = 24, px = 40 / 60; // 40px per hour
+  const y = m => (m - startH * 60) * px;
+  const hosts = [...new Set(t.buckets.map(b => b.host))];
+  const cols = ["plan", "timer", ...hosts];
+  const w = 100 / cols.length;
+  let ev = "";
+  data.blocks.forEach(b => ev += `<div class="ev plan" style="left:${0}%;width:${w - 1}%;top:${y(mins(b.start))}px;height:${(mins(b.end) - mins(b.start)) * px}px">${esc(b.start)} ${esc(b.title)}</div>`);
+  data.sessions.filter(s => s.start_ts.slice(0, 10) === day).forEach(s => {
+    const a = mins(hhmm(s.start_ts)), e = s.end_ts && s.end_ts.slice(0, 10) === day ? mins(hhmm(s.end_ts)) : (day === iso(new Date()) && !s.end_ts ? new Date().getHours() * 60 + new Date().getMinutes() : 24 * 60);
+    ev += `<div class="ev sess" style="left:${w}%;width:${w - 1}%;top:${y(a)}px;height:${Math.max(12, (e - a) * px)}px">${esc(s.label)}</div>`;
+  });
+  t.buckets.forEach(b => {
+    const i = 2 + hosts.indexOf(b.host);
+    ev += `<div class="ev ${b.app === "idle" ? "idle" : "app"}" title="${esc(Object.entries(b.mix).map(([k, v]) => k + " " + v + "m").join(", "))}" style="left:${i * w}%;width:${w - 1}%;top:${y(mins(b.start))}px;height:${t.bucket_min * px - 1}px">${esc(b.app)}</div>`;
+  });
+  let hours = "";
+  for (let h = startH; h < endH; h++) hours += `<div class="h">${String(h).padStart(2, "0")}:00</div>`;
+  $("#tl").innerHTML = `<div class="tl"><div></div><div style="display:flex;font-size:12px;color:var(--mute);padding-bottom:4px">${cols.map(c => `<span style="flex:1">${esc(c)}</span>`).join("")}</div></div>
+    <div class="tl"><div>${hours}</div><div class="cols" style="height:${(endH - startH) * 40}px">${ev}</div></div>`;
+  $("#tot").innerHTML = t.totals.length ? t.totals.map(([a, m]) => `<tr><td>${esc(a)}</td><td>${m}</td></tr>`).join("") : `<tr><td class="s">No sampler data for this day. Run sampler/sampler.py on each machine.</td></tr>`;
+}
+
+function renderWeek(w) {
+  const max = Math.max(60, ...w.days.map(d => Math.max(d.planned, d.tracked_total)));
+  $("#wk").innerHTML = `<tr><th>Day</th><th>Planned vs tracked</th><th>Tracked by label</th><th>Done</th></tr>` + w.days.map(d => `<tr>
+    <td>${new Date(d.day + "T12:00").toLocaleDateString(undefined, {weekday: "short", day: "numeric"})}</td>
+    <td style="width:35%"><div class="bar p" style="width:${d.planned / max * 100}%"></div><div class="bar" style="width:${d.tracked_total / max * 100}%;margin-top:3px"></div><span class="s">${d.planned}m plan · ${d.tracked_total}m tracked</span></td>
+    <td class="s">${Object.entries(d.tracked).map(([k, v]) => esc(k) + " " + v + "m").join("<br>") || "–"}</td>
+    <td>${d.done}</td></tr>`).join("");
+}
+
+document.addEventListener("click", e => {
+  const d = e.target.dataset;
+  if (d.v) setView(d.v);
+  if (d.delBlock) post("/api/blocks/delete", {id: +d.delBlock});
+  if (d.delTask) post("/api/tasks/delete", {id: +d.delTask});
+  if (d.move) post("/api/tasks/move", {id: +d.move, day: d.to || null});
+  if (d.go) post("/api/start", {label: d.go});
+});
+document.addEventListener("change", e => { if (e.target.dataset.tog) post("/api/tasks/toggle", {id: +e.target.dataset.tog}); });
+$("#startf").onsubmit = e => { e.preventDefault(); const l = $("#startl").value.trim(); if (l) post("/api/start", {label: l}).then(() => $("#startl").value = ""); };
+$("#blockf").onsubmit = e => { e.preventDefault(); post("/api/blocks", {day, start: $("#bs").value, end: $("#be").value, title: $("#bt").value, first_step: $("#bf").value}).then(() => { $("#bt").value = $("#bf").value = ""; }); };
+$("#taskf").onsubmit = e => { e.preventDefault(); post("/api/tasks", {day, title: $("#tt").value}).then(() => $("#tt").value = ""); };
+$("#backf").onsubmit = e => { e.preventDefault(); post("/api/tasks", {title: $("#bl").value}).then(() => $("#bl").value = ""); };
+const shift = n => { const d = new Date(day + "T12:00"); d.setDate(d.getDate() + n); day = iso(d); load(); };
+$("#prev").onclick = () => shift(-1); $("#next").onclick = () => shift(1); $("#tod").onclick = () => { day = iso(new Date()); load(); };
+setView(view);
+</script>
+</body>
+</html>
