@@ -13,7 +13,7 @@ file, runs on macOS and Linux.
 |---|---|---|
 | `focusboard/server.py` | Web app: **Today** (plan blocks with a first step, now-doing timer, todos, backlog), **Timeline** (planned vs timer vs foreground app), **Week** (planned vs tracked minutes, todos done) | your user |
 | `blocker/block.py` | Writes the blocklist into a marked section of `/etc/hosts` during your blocking hours, so the sites fail to load in **every** app and browser | root, every minute |
-| `sampler/sampler.py` | Records the foreground app (and on Linux the window title) once a minute, for the Timeline | your user, at login |
+| `sampler/sampler.py` | Once a minute, records the foreground app (and on Linux the window title) for the Timeline, and reports this machine's blocker state, shown per device in the header | your user, at login |
 
 The blocker deliberately just **blocks**: no redirect. A blocked site shows a
 connection error, which is enough to break the reflex. (Redirecting an HTTPS

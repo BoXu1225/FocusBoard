@@ -23,6 +23,9 @@ import sys
 import time
 import urllib.request
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "blocker"))
+import block  # noqa: E402  (repo's blocker/block.py: reads the local blocker state)
+
 
 def run(cmd):
     try:
@@ -89,7 +92,7 @@ def main():
     while True:
         app, title, idle = sample(not a.no_titles)
         item = {"host": a.host, "ts": dt.datetime.now().isoformat(timespec="seconds"),
-                "app": app, "title": title, "idle_s": idle}
+                "app": app, "title": title, "idle_s": idle, "blocker": block.local_status()}
         if a.once:
             print(json.dumps(item))
             return

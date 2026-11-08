@@ -217,6 +217,31 @@ def decide(config_path, now):
     return False, "outside blocking windows", domains
 
 
+def local_status(config_path=DEFAULT_CONFIG, hosts_path=DEFAULT_HOSTS, now=None):
+    """This machine's blocker state for the board, readable without root.
+
+    state: "blocked" | "open" | "paused" | "not installed" | "error"
+    """
+    now = now or dt.datetime.now()
+    try:
+        with open(hosts_path) as f:
+            active = BEGIN in f.read()
+    except OSError as e:
+        return {"state": "error", "reason": "can't read hosts: %s" % e}
+    if not os.path.exists(config_path):
+        if active:
+            return {"state": "blocked", "reason": "hosts section present, no blocklist installed"}
+        return {"state": "not installed", "reason": "run sudo ./blocker/install.sh"}
+    try:
+        block, reason, domains = decide(config_path, now)
+    except (OSError, ConfigError) as e:
+        return {"state": "error", "reason": str(e)}
+    state = "blocked" if active else ("paused" if reason.startswith("paused") else "open")
+    if block != active:  # the minute job hasn't caught up (or isn't running)
+        reason += "; job should %s it" % ("apply" if block else "lift")
+    return {"state": state, "reason": reason, "sites": len(domains)}
+
+
 def cmd_apply(args):
     now = dt.datetime.now()
     try:

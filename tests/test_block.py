@@ -78,5 +78,19 @@ class HostsTest(unittest.TestCase):
         self.assertIn("x.com", open(hosts).read())
 
 
+class StatusTest(unittest.TestCase):
+    def test_states(self):
+        d = tempfile.mkdtemp()
+        cfg, hosts = os.path.join(d, "blocklist"), os.path.join(d, "hosts")
+        open(hosts, "w").write("127.0.0.1 localhost\n")
+        self.assertEqual(block.local_status(cfg, hosts)["state"], "not installed")
+        open(cfg, "w").write("x.com\n")
+        st = block.local_status(cfg, hosts)
+        self.assertEqual(st["state"], "open")
+        self.assertIn("should apply", st["reason"])
+        open(hosts, "a").write(block.render_section(["x.com"]))
+        self.assertEqual(block.local_status(cfg, hosts)["state"], "blocked")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -11,6 +11,7 @@ import datetime as dt
 import json
 import os
 import re
+import socket
 import sqlite3
 import sys
 import threading
@@ -20,8 +21,6 @@ from urllib.parse import parse_qs, urlparse
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DB_PATH = os.environ.get("FOCUSBOARD_DB", os.path.join(ROOT, "focusboard.db"))
-HOSTS = "/etc/hosts"
-BLOCK_MARK = "# >>> focusboard >>>"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS blocks (      -- planned time blocks
@@ -36,6 +35,8 @@ CREATE TABLE IF NOT EXISTS sessions (    -- what I was doing (timer)
 CREATE TABLE IF NOT EXISTS samples (     -- foreground app, from sampler.py
   id INTEGER PRIMARY KEY, host TEXT NOT NULL, ts TEXT NOT NULL, app TEXT,
   title TEXT, idle_s INTEGER);
+CREATE TABLE IF NOT EXISTS devices (     -- latest report per machine
+  host TEXT PRIMARY KEY, ts TEXT NOT NULL, blocker_state TEXT, blocker_reason TEXT);
 CREATE INDEX IF NOT EXISTS samples_ts ON samples(ts);
 CREATE INDEX IF NOT EXISTS sessions_start ON sessions(start_ts);
 """
@@ -84,12 +85,25 @@ def text(s, field, maxlen=300, required=True):
     return s[:maxlen]
 
 
-def blocker_active():
-    try:
-        with open(HOSTS) as f:
-            return BLOCK_MARK in f.read()
-    except OSError:
-        return None
+sys.path.insert(0, os.path.join(ROOT, "blocker"))
+import block  # noqa: E402
+
+SELF = socket.gethostname().split(".")[0]
+STALE_S = 180  # a device that hasn't reported for 3 min shows as offline
+
+
+def devices():
+    """Blocker state per machine: this server's own, plus what samplers report."""
+    t = now()
+    out = {SELF: dict(block.local_status(), host=SELF, ts=iso(t), online=True, server=True)}
+    with db() as c:
+        for r in rows(c.execute("SELECT * FROM devices ORDER BY host")):
+            if r["host"] == SELF:
+                continue
+            age = (t - dt.datetime.fromisoformat(r["ts"])).total_seconds()
+            out[r["host"]] = {"host": r["host"], "ts": r["ts"], "online": age < STALE_S,
+                              "state": r["blocker_state"], "reason": r["blocker_reason"]}
+    return sorted(out.values(), key=lambda d: (not d.get("server"), d["host"]))
 
 
 # ---------------------------------------------------------------- API logic
@@ -106,7 +120,7 @@ def get_day(day):
             (day,)))
         running = rows(c.execute("SELECT * FROM sessions WHERE end_ts IS NULL"))
     return {"day": day, "blocks": blocks, "tasks": tasks, "sessions": sessions,
-            "running": running[0] if running else None, "blocker": blocker_active(),
+            "running": running[0] if running else None, "devices": devices(),
             "now": iso(now())}
 
 
@@ -217,6 +231,15 @@ def handle_post(path, body):
                            text(s.get("app"), "app", 120, False),
                            text(s.get("title"), "title", 300, False),
                            int(s.get("idle_s") or 0)))
+                b = s.get("blocker")
+                if isinstance(b, dict):
+                    c.execute("INSERT INTO devices(host,ts,blocker_state,blocker_reason) VALUES(?,?,?,?) "
+                              "ON CONFLICT(host) DO UPDATE SET ts=excluded.ts, "
+                              "blocker_state=excluded.blocker_state, blocker_reason=excluded.blocker_reason "
+                              "WHERE excluded.ts >= devices.ts",
+                              (text(s.get("host"), "host", 80), ts[:19],
+                               text(b.get("state"), "state", 30, False),
+                               text(b.get("reason"), "reason", 200, False)))
         else:
             return None
     return {"ok": True}

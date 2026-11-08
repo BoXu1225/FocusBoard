@@ -62,7 +62,7 @@ th{color:var(--mute);font-weight:500;font-size:12px}
 <header>
   <h1>FocusBoard</h1>
   <nav><button data-v="today" class="on">Today</button> <button data-v="timeline">Timeline</button> <button data-v="week">Week</button></nav>
-  <span id="blk" class="chip">blocker ?</span>
+  <span id="blk" style="display:flex;gap:6px;flex-wrap:wrap"></span>
   <div class="day"><button id="prev">‹</button><span id="dayl"></span><button id="next">›</button><button id="tod">Today</button></div>
 </header>
 <main>
@@ -139,9 +139,11 @@ function setView(v) {
 async function load() {
   $("#dayl").textContent = new Date(day + "T12:00").toLocaleDateString(undefined, {weekday: "short", day: "numeric", month: "short"});
   data = await api("/api/day?day=" + day);
-  const b = data.blocker;
-  $("#blk").textContent = b === null ? "blocker ?" : b ? "sites blocked" : "sites open";
-  $("#blk").classList.toggle("on", !!b);
+  $("#blk").innerHTML = data.devices.map(d => {
+    const st = d.online ? d.state : "offline";
+    const icon = {blocked: "🔒", open: "🔓", paused: "⏸", "not installed": "–", error: "!", offline: "·"}[st] || "?";
+    return `<span class="chip ${st === "blocked" ? "on" : ""}" title="${esc(d.reason || "")}${d.online ? "" : " · last seen " + esc(d.ts)}">${icon} ${esc(d.host)}: ${esc(st)}</span>`;
+  }).join(" ");
   if (view === "today") renderToday();
   if (view === "timeline") renderTimeline(await api("/api/timeline?day=" + day));
   if (view === "week") renderWeek(await api("/api/week?day=" + day));
