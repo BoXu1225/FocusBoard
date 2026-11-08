@@ -4,7 +4,7 @@
 Standard library only (Python 3.9+). One SQLite file. Serves a single page
 plus a small JSON API that the page and the activity sampler use.
 
-    FOCUSBOARD_HOST (default 127.0.0.1)   FOCUSBOARD_PORT (default 5060)
+    FOCUSBOARD_HOST (default 127.0.0.1)   FOCUSBOARD_PORT (default 5070)
     FOCUSBOARD_DB   (default ./focusboard.db next to the repo root)
 """
 import datetime as dt
@@ -281,7 +281,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     init_db()
     host = os.environ.get("FOCUSBOARD_HOST", "127.0.0.1")
-    port = int(os.environ.get("FOCUSBOARD_PORT", "5060"))
+    port = int(os.environ.get("FOCUSBOARD_PORT", "5070"))
     srv = ThreadingHTTPServer((host, port), Handler)
     print("FocusBoard on http://%s:%d (db %s)" % (host, port, DB_PATH), flush=True)
     try:

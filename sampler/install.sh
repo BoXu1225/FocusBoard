@@ -1,6 +1,6 @@
 #!/bin/sh
 # Run the activity sampler at login, as your user (no sudo).
-#   ./sampler/install.sh http://<server>:5060      # install / update
+#   ./sampler/install.sh http://<server>:5070      # install / update
 #   ./sampler/install.sh --uninstall
 set -eu
 cd "$(dirname "$0")/.."
@@ -17,7 +17,7 @@ if [ "${1:-}" = "--uninstall" ]; then
   echo "sampler removed"; exit 0
 fi
 
-URL="${1:?usage: sampler/install.sh http://<server>:5060}"
+URL="${1:?usage: sampler/install.sh http://<server>:5070}"
 if [ "$(uname)" = Darwin ]; then
   mkdir -p "$(dirname "$PLIST")"
   cat > "$PLIST" <<EOS

@@ -4,7 +4,7 @@
 Posts {host, ts, app, title, idle_s} to the FocusBoard server so the Timeline
 page shows what you actually did. Runs as your user, in your desktop session.
 
-    sampler.py --server http://127.0.0.1:5060 [--interval 60] [--no-titles]
+    sampler.py --server http://127.0.0.1:5070 [--interval 60] [--no-titles]
 
 macOS: app name via `lsappinfo` and idle time via `ioreg` (no permissions
 needed; window titles aren't read). Linux/X11: `xdotool` + `xprop` for the
@@ -78,7 +78,7 @@ def post(server, items):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--server", default=os.environ.get("FOCUSBOARD_URL", "http://127.0.0.1:5060"))
+    p.add_argument("--server", default=os.environ.get("FOCUSBOARD_URL", "http://127.0.0.1:5070"))
     p.add_argument("--interval", type=int, default=60)
     p.add_argument("--host", default=socket.gethostname().split(".")[0])
     p.add_argument("--no-titles", action="store_true", help="don't record window titles")

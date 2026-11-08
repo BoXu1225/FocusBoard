@@ -25,7 +25,7 @@ worth the risk.)
 ```sh
 git clone https://github.com/BoXu1225/FocusBoard && cd FocusBoard
 
-# 1. The web app (http://127.0.0.1:5060 by default; see "One board, many machines")
+# 1. The web app (http://127.0.0.1:5070 by default; see "One board, many machines")
 ./run_server.sh
 
 # 2. The blocker: edit the list, then install it (needs sudo, re-run after edits)
@@ -34,7 +34,7 @@ sudo ./blocker/install.sh
 focusblock status
 
 # 3. Optional: the activity sampler
-./sampler/install.sh http://127.0.0.1:5060
+./sampler/install.sh http://127.0.0.1:5070
 ```
 
 ## The blocklist
@@ -82,7 +82,7 @@ Install the blocker and sampler on each computer you use, pointing the sampler a
 the shared server:
 
 ```sh
-./sampler/install.sh http://100.x.y.z:5060
+./sampler/install.sh http://100.x.y.z:5070
 ```
 
 ## Daily use
